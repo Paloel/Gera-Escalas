@@ -1,21 +1,15 @@
 import { useState, useEffect } from 'react';
 import { X, Check, Save } from 'lucide-react';
-import axios from 'axios';
+import api from '../api'; // <--- Conexão centralizada
 
 export function ModalFuncionario({ isOpen, aoFechar, aoSalvar, funcionarioParaEditar, escalaId }) {
-  // --- ESTADOS ---
   const [nome, setNome] = useState("");
   const [cargo, setCargo] = useState("");
-  const [tipo, setTipo] = useState("12x36"); // "12x36" ou "DIARISTA"
-  
-  // Opções 12x36
+  const [tipo, setTipo] = useState("12x36"); 
   const [equipe, setEquipe] = useState("A");
-  const [turno, setTurno] = useState("M"); // Padrão M (Manhã)
+  const [turno, setTurno] = useState("M"); 
+  const [folgas, setFolgas] = useState([6]);
 
-  // Opções Diarista (Folgas: 0=Dom, 6=Sáb)
-  const [folgas, setFolgas] = useState([6]); // Padrão Domingo
-
-  // --- EFEITO: PREENCHER DADOS AO EDITAR ---
   useEffect(() => {
     if (funcionarioParaEditar) {
       setNome(funcionarioParaEditar.nome);
@@ -40,9 +34,7 @@ export function ModalFuncionario({ isOpen, aoFechar, aoSalvar, funcionarioParaEd
 
   if (!isOpen) return null;
 
-  // --- SALVAR ---
   const salvar = async () => {
-    // Validação Básica
     if (!nome.trim() || !cargo.trim()) {
       alert("Nome e Cargo são obrigatórios!");
       return;
@@ -53,9 +45,8 @@ export function ModalFuncionario({ isOpen, aoFechar, aoSalvar, funcionarioParaEd
       return;
     }
 
-    // Monta o objeto para enviar ao Python
     const payload = {
-      escala_id: Number(escalaId), // VITAL: Diz de qual loja é esse funcionário
+      escala_id: Number(escalaId),
       nome,
       cargo,
       tipo_escala: tipo,
@@ -66,15 +57,15 @@ export function ModalFuncionario({ isOpen, aoFechar, aoSalvar, funcionarioParaEd
 
     try {
       if (funcionarioParaEditar) {
-        // MODO EDIÇÃO (PUT)
-        await axios.put(`http://127.0.0.1:8000/funcionarios/${funcionarioParaEditar.id}`, payload);
+        // PUT
+        await api.put(`/funcionarios/${funcionarioParaEditar.id}`, payload);
       } else {
-        // MODO CRIAÇÃO (POST)
-        await axios.post('http://127.0.0.1:8000/funcionarios/', payload);
+        // POST
+        await api.post('/funcionarios/', payload);
       }
       
-      aoSalvar(); // Recarrega a tabela na tela de trás
-      aoFechar(); // Fecha o modal
+      aoSalvar();
+      aoFechar();
       limparCampos();
     } catch (erro) {
       console.error("Erro ao salvar:", erro);
@@ -82,7 +73,6 @@ export function ModalFuncionario({ isOpen, aoFechar, aoSalvar, funcionarioParaEd
     }
   };
 
-  // Auxiliar para marcar/desmarcar dias
   const toggleFolga = (diaIndex) => {
     if (folgas.includes(diaIndex)) {
       setFolgas(folgas.filter(d => d !== diaIndex));
@@ -91,15 +81,14 @@ export function ModalFuncionario({ isOpen, aoFechar, aoSalvar, funcionarioParaEd
     }
   };
 
-  // --- ESTILOS VISUAIS ---
   const getEstiloBotao = (selecionado) => ({
     flex: 1, 
     padding: '10px', 
     borderRadius: '5px', 
     cursor: 'pointer', 
     border: selecionado ? '2px solid #0070C0' : '1px solid #ccc',
-    backgroundColor: selecionado ? '#D9EAF7' : '#f0f0f0', // Azul claro se selecionado
-    color: '#000000', // TEXTO SEMPRE PRETO (Legibilidade)
+    backgroundColor: selecionado ? '#D9EAF7' : '#f0f0f0',
+    color: '#000000', 
     fontWeight: selecionado ? 'bold' : 'normal',
     transition: 'all 0.2s'
   });
@@ -114,7 +103,6 @@ export function ModalFuncionario({ isOpen, aoFechar, aoSalvar, funcionarioParaEd
         boxShadow: '0 4px 15px rgba(0,0,0,0.2)', fontFamily: 'Arial'
       }}>
         
-        {/* CABEÇALHO */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
           <h2 style={{ margin: 0, fontSize: '20px', color: '#333' }}>
             {funcionarioParaEditar ? "Editar Funcionário" : "Novo Funcionário"}
@@ -124,7 +112,6 @@ export function ModalFuncionario({ isOpen, aoFechar, aoSalvar, funcionarioParaEd
           </button>
         </div>
 
-        {/* CAMPOS DE TEXTO */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <input 
             placeholder="Nome Completo *" 
@@ -140,7 +127,6 @@ export function ModalFuncionario({ isOpen, aoFechar, aoSalvar, funcionarioParaEd
             style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc', fontSize: '14px' }}
           />
 
-          {/* SELEÇÃO DO TIPO DE ESCALA */}
           <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
             <button onClick={() => setTipo("12x36")} style={getEstiloBotao(tipo === "12x36")}>
               Escala 12x36
@@ -150,7 +136,6 @@ export function ModalFuncionario({ isOpen, aoFechar, aoSalvar, funcionarioParaEd
             </button>
           </div>
 
-          {/* CONFIGURAÇÃO 12x36 */}
           {tipo === "12x36" && (
             <div style={{ padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '8px', border: '1px solid #eee' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: 'bold' }}>Equipe:</label>
@@ -173,7 +158,6 @@ export function ModalFuncionario({ isOpen, aoFechar, aoSalvar, funcionarioParaEd
             </div>
           )}
 
-          {/* CONFIGURAÇÃO DIARISTA */}
           {tipo === "DIARISTA" && (
             <div style={{ padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '8px', border: '1px solid #eee' }}>
               <label style={{ display: 'block', marginBottom: '10px', fontSize: '12px', fontWeight: 'bold' }}>
@@ -189,8 +173,8 @@ export function ModalFuncionario({ isOpen, aoFechar, aoSalvar, funcionarioParaEd
                       style={{
                         padding: '8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', flex: 1,
                         border: estaSelecionado ? '1px solid #d9534f' : '1px solid #ccc',
-                        backgroundColor: estaSelecionado ? '#fce4e4' : 'white', // Fundo levemente vermelho
-                        color: '#000000', // Texto preto
+                        backgroundColor: estaSelecionado ? '#fce4e4' : 'white',
+                        color: '#000000',
                         fontWeight: estaSelecionado ? 'bold' : 'normal'
                       }}
                     >
@@ -204,7 +188,6 @@ export function ModalFuncionario({ isOpen, aoFechar, aoSalvar, funcionarioParaEd
 
         </div>
 
-        {/* BOTÃO DE SALVAR */}
         <button 
           onClick={salvar}
           style={{

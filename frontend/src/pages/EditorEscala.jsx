@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Save, UserPlus, Trash2, RefreshCw, Settings, Download, Pencil } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api'; // <--- Conexão centralizada
 import { ModalFuncionario } from '../components/ModalFuncionario';
 import { ModalLegenda } from '../components/ModalLegenda';
 
@@ -26,13 +26,14 @@ export function EditorEscala() {
 
   useEffect(() => {
     if (funcionarios.length > 0 && escalaInfo) {
-       gerarGradeInicial(funcionarios, escalaInfo.mes, escalaInfo.ano, true);
+       gerarGradeInicial(funcionarios, escalaInfo.mes, escalaInfo.ano, false);
     }
   }, [inverter12x36]);
 
   const carregarTudo = async () => {
     try {
-      const respEscala = await axios.get(`http://127.0.0.1:8000/escalas/${id}`);
+      // Usa api.get sem a URL completa
+      const respEscala = await api.get(`/escalas/${id}`);
       setEscalaInfo(respEscala.data);
       
       const coresDoBanco = respEscala.data.legenda_cores || {};
@@ -41,7 +42,7 @@ export function EditorEscala() {
       const siglasPersonalizadas = Object.keys(coresDoBanco).filter(k => !OPCOES_STATUS_BASE.includes(k));
       setOpcoesStatus([...OPCOES_STATUS_BASE, ...siglasPersonalizadas]);
 
-      const respFuncs = await axios.get(`http://127.0.0.1:8000/escalas/${id}/funcionarios`);
+      const respFuncs = await api.get(`/escalas/${id}/funcionarios`);
       setFuncionarios(respFuncs.data);
       
       if (respEscala.data.dados_escala && Object.keys(respEscala.data.dados_escala).length > 0) {
@@ -54,7 +55,7 @@ export function EditorEscala() {
 
   const deletarFuncionario = async (funcId) => {
       if(window.confirm("Excluir?")) {
-          await axios.delete(`http://127.0.0.1:8000/funcionarios/${funcId}`);
+          await api.delete(`/funcionarios/${funcId}`);
           carregarTudo();
       }
   };
@@ -102,7 +103,7 @@ export function EditorEscala() {
 
   const salvarEscala = async () => {
     try {
-      await axios.put(`http://127.0.0.1:8000/escalas/${id}`, {
+      await api.put(`/escalas/${id}`, {
         nome: escalaInfo.nome, mes: escalaInfo.mes, ano: escalaInfo.ano,
         dados_escala: grade, legenda_cores: cores
       });
@@ -112,7 +113,7 @@ export function EditorEscala() {
 
   const baixarExcel = async () => {
       try {
-          const resp = await axios.get(`http://127.0.0.1:8000/exportar_excel/${id}`, { responseType: 'blob' });
+          const resp = await api.get(`/exportar_excel/${id}`, { responseType: 'blob' });
           const url = window.URL.createObjectURL(new Blob([resp.data]));
           const link = document.createElement('a');
           link.href = url;
@@ -167,10 +168,8 @@ export function EditorEscala() {
         <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
           <thead>
             <tr style={{ height: '30px' }}>
-              {/* CABEÇALHOS RESTAURADOS: PRETO COM TEXTO BRANCO */}
               <th style={{ width: '15%', backgroundColor: '#333', color: '#fff', border: '1px solid #555', fontSize: '12px', paddingLeft: '5px', textAlign: 'left' }}>Funcionário</th>
               <th style={{ width: '10%', backgroundColor: '#333', color: '#fff', border: '1px solid #555', fontSize: '12px', paddingLeft: '5px', textAlign: 'left' }}>Cargo</th>
-              
               {diasDoMes.map(dia => (
                 <th key={dia} style={{ border: '1px solid #999', fontSize: '10px', backgroundColor: getDiaSemana(dia) === 0 ? '#FFFF00' : '#E0E0E0', color: '#000', padding: '0' }}>
                    {DIAS_SEMANA[getDiaSemana(dia)]}
@@ -180,7 +179,6 @@ export function EditorEscala() {
             <tr style={{ height: '25px' }}>
               <th colSpan={2} style={{ backgroundColor: '#444', border: '1px solid #555' }}></th>
               {diasDoMes.map(dia => (
-                // NÚMEROS DOS DIAS: FUNDO BRANCO, TEXTO PRETO
                 <th key={dia} style={{ border: '1px solid #999', backgroundColor: '#fff', color: '#000', fontSize: '11px' }}>{dia}</th>
               ))}
             </tr>
