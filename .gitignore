@@ -1,6 +1,14 @@
+# Python
 venv/
-node_modules/
 __pycache__/
-*.db
+*.py[cod]
 .env
+
+# React
+node_modules/
+dist/
 .DS_Store
+
+# Banco de Dados Local (Não sobe pra nuvem)
+*.db
+*.sqlite3
